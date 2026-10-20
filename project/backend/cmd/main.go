@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"eats/backend"
+	"eats/backend/common/log"
 )
 
 func main() {
 	ctx := context.Background()
+
+	log.Init(slog.LevelInfo)
 
 	dsn := os.Getenv("POSTGRES_URL")
 	if dsn == "" {
@@ -23,7 +26,7 @@ func main() {
 		panic(err)
 	}
 
-	_, err = backend.New(
+	svc, err := backend.New(
 		ctx,
 		dbPgx,
 	)
@@ -31,5 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Service initialized")
+	if err := svc.Run(":8080"); err != nil {
+		panic(err)
+	}
 }
