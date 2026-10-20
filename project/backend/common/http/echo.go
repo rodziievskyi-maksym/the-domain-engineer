@@ -2,10 +2,14 @@ package http
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
+
+	"eats/backend/common"
+	"eats/backend/common/log"
 )
 
 func NewEcho() *echo.Echo {
@@ -16,6 +20,7 @@ func NewEcho() *echo.Echo {
 
 	useMiddlewares(e)
 	e.HTTPErrorHandler = HandleError
+	e.Logger = common.NewEchoSlogAdapter(slog.Default())
 
 	e.GET("/health", func(c echo.Context) error {
 		return c.NoContent(http.StatusOK)
@@ -25,6 +30,8 @@ func NewEcho() *echo.Echo {
 }
 
 func HandleError(err error, c echo.Context) {
+	log.FromContext(c.Request().Context()).With("error", err).Error("HTTP error")
+
 	httpCode := http.StatusInternalServerError
 	msg := any("Internal server error")
 
