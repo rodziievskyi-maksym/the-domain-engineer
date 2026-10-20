@@ -21,6 +21,7 @@ func useMiddlewares(e *echo.Echo) {
 	e.Use(
 		middleware.ContextTimeout(10*time.Second),
 		middleware.Recover(),
+		requestLogMiddleware,
 	)
 }
 
