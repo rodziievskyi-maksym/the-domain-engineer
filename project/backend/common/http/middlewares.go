@@ -17,10 +17,33 @@ import (
 	"eats/backend/common/log"
 )
 
+const (
+	TestNameHeader = "TestName"
+)
+
 func useMiddlewares(e *echo.Echo) {
 	e.Use(
 		middleware.ContextTimeout(10*time.Second),
 		middleware.Recover(),
+		// Correlation-ID runs first: available in context for the request log middleware.
+		func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				req := c.Request()
+				ctx := req.Context()
+
+				logger := slog.Default()
+
+				if testName := c.Request().Header.Get("TestName"); testName != "" {
+					logger = logger.With("test_name", testName)
+				}
+
+				ctx = log.ToContext(ctx, logger)
+				c.SetRequest(req.WithContext(ctx))
+
+				return next(c)
+			}
+		},
+		requestLogMiddleware,
 	)
 }
 
