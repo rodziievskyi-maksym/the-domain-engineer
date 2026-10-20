@@ -3,11 +3,13 @@ package backend
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	echo "github.com/labstack/echo/v4"
 
 	commonHTTP "eats/backend/common/http"
+	"eats/backend/common/log"
 	"eats/backend/common/module"
 	"eats/backend/common/module/contracts"
 	"eats/backend/orders"
@@ -36,6 +38,8 @@ func New(
 	}
 
 	for _, module := range modules {
+		start := time.Now()
+
 		if err := module.Init(ctx); err != nil {
 			return Svc{}, fmt.Errorf("initializing module %s failed: %w", module.Name(), err)
 		}
@@ -43,6 +47,11 @@ func New(
 		if err := module.RegisterContracts(ctx, moduleContracts); err != nil {
 			return Svc{}, fmt.Errorf("registering module %s failed: %w", module.Name(), err)
 		}
+
+		log.FromContext(ctx).With(
+			"duration", time.Since(start),
+			"module", module.Name(),
+		).Debug("Initialized module")
 	}
 
 	if err := moduleContracts.Verify(); err != nil {
