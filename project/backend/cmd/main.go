@@ -26,7 +26,7 @@ func main() {
 		panic(err)
 	}
 
-	srv, err := backend.New(
+	svc, err := backend.New(
 		ctx,
 		dbPgx,
 	)
@@ -34,7 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := srv.Run(":8080"); err != nil {
+	if err := svc.Run(":8080"); err != nil {
 		panic(err)
 	}
 }
