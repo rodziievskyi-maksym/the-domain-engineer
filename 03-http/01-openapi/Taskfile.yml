@@ -1,0 +1,13 @@
+version: '3'
+
+output: prefixed
+
+tasks:
+  gen:
+    cmds:
+      - go generate ./...
+      - task: fmt
+
+  fmt:
+    cmds:
+      - go tool gofumpt -l -w .

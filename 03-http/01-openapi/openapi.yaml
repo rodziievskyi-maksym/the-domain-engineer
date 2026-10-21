@@ -1,0 +1,91 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Devices
+paths:
+  /devices:
+    post:
+      summary: Register a new device
+      operationId: registerDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDevice'
+      responses:
+        '201':
+          description: Device registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterDeviceResponse'
+  /devices/{device_uuid}:
+    get:
+      summary: Get a device
+      operationId: getDevice
+      parameters:
+        - name: device_uuid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Device found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+        '404':
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    RegisterDevice:
+      type: object
+      required:
+        - name
+        - serial_number
+      properties:
+        name:
+          type: string
+        serial_number:
+          type: string
+
+    RegisterDeviceResponse:
+      type: object
+      required:
+        - device_uuid
+      properties:
+        device_uuid:
+          type: string
+          format: uuid
+
+    Device:
+      type: object
+      required:
+        - device_uuid
+        - name
+        - serial_number
+      properties:
+        device_uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        serial_number:
+          type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
