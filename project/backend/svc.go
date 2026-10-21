@@ -21,6 +21,8 @@ type Svc struct {
 	modules []module.Module
 
 	dbPgx *pgxpool.Pool
+
+	shutdownTimeout time.Duration
 }
 
 func New(
@@ -66,9 +68,10 @@ func New(
 	}
 
 	return Svc{
-		echoRouter: e,
-		modules:    modules,
-		dbPgx:      dbPgx,
+		echoRouter:      e,
+		modules:         modules,
+		dbPgx:           dbPgx,
+		shutdownTimeout: 10 * time.Second,
 	}, nil
 }
 
