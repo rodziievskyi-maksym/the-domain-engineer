@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -12,7 +14,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
 
 	log.Init(slog.LevelInfo)
 
@@ -34,7 +37,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := svc.Run(":8080"); err != nil {
+	if err := svc.Run(ctx, ":8080"); err != nil {
 		panic(err)
 	}
 }

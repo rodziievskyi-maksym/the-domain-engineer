@@ -2,11 +2,14 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	echo "github.com/labstack/echo/v4"
+	"golang.org/x/sync/errgroup"
 
 	commonHTTP "eats/backend/common/http"
 	"eats/backend/common/log"
@@ -75,13 +78,28 @@ func New(
 	}, nil
 }
 
-func (s *Svc) Run(port string) error {
+func (s *Svc) Run(ctx context.Context, port string) error {
+	eg, egCtx := errgroup.WithContext(ctx)
+
 	defer s.dbPgx.Close()
 
-	err := s.echoRouter.Start(port)
-	if err != nil {
-		return fmt.Errorf("starting http server failed: %w", err)
-	}
+	eg.Go(func() error {
+		err := s.echoRouter.Start(port)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("starting http server failed: %w", err)
+		}
 
-	return nil
+		return nil
+	})
+
+	eg.Go(func() error {
+		<-egCtx.Done()
+
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
+		defer cancel()
+
+		return s.echoRouter.Shutdown(shutdownCtx)
+	})
+
+	return eg.Wait()
 }
