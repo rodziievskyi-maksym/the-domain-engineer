@@ -1,3 +1,6 @@
 go 1.27.1
 
-use ./project
+use (
+	./03-http/01-openapi
+	./project
+)
