@@ -13,12 +13,14 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/lithammer/shortuuid/v3"
 
 	"eats/backend/common/log"
 )
 
 const (
-	TestNameHeader = "TestName"
+	TestNameHeader      = "TestName"
+	CorrelationIDHeader = "Correlation-ID"
 )
 
 func useMiddlewares(e *echo.Echo) {
@@ -37,8 +39,19 @@ func useMiddlewares(e *echo.Echo) {
 					logger = logger.With("test_name", testName)
 				}
 
+				correlationID := c.Request().Header.Get(CorrelationIDHeader)
+
+				if correlationID == "" {
+					correlationID = shortuuid.New()
+				}
+
+				log.ContextWithCorrelationID(ctx, correlationID)
+				logger = logger.With("correlation_id", correlationID)
+
 				ctx = log.ToContext(ctx, logger)
 				c.SetRequest(req.WithContext(ctx))
+
+				c.Response().Header().Set(CorrelationIDHeader, correlationID)
 
 				return next(c)
 			}
