@@ -2,8 +2,9 @@ package http
 
 import (
 	"context"
-	"eats/backend/common"
 	"fmt"
+
+	"eats/backend/common"
 
 	"eats/backend/common/shared"
 	"eats/backend/orders/app"
