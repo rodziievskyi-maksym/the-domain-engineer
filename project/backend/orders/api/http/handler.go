@@ -2,11 +2,11 @@ package http
 
 import (
 	"context"
-	"eats/backend/common/shared"
-	"eats/backend/orders/app"
+	"eats/backend/common"
 	"fmt"
 
-	"eats/backend/common"
+	"eats/backend/common/shared"
+	"eats/backend/orders/app"
 )
 
 type Handler struct {
@@ -26,7 +26,7 @@ func NewHandler(
 }
 
 func (h Handler) RegisterCustomer(ctx context.Context, request RegisterCustomerRequestObject) (RegisterCustomerResponseObject, error) {
-	customerUUID := common.NewUUIDv7()
+	customerUUID := app.CustomerUUID{UUID: common.NewUUIDv7()}
 
 	addr, err := openapiAddressToSharedAddress(request.Body.Address)
 	if err != nil {

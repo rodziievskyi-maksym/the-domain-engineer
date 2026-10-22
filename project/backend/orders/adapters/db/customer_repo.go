@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
-	"eats/backend/orders/app"
 	"fmt"
+
+	"eats/backend/orders/app"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
