@@ -2,37 +2,44 @@ package http
 
 import (
 	"context"
+	"eats/backend/common/shared"
+	"eats/backend/orders/app"
+	"fmt"
 
 	"eats/backend/common"
 )
 
-type CustomerRepository interface {
-	RegisterCustomer(ctx context.Context, customerUUID common.UUID, customer RegisterCustomer) error
-}
-
 type Handler struct {
-	customerRepository CustomerRepository
+	customerService *app.Service
 }
 
 func NewHandler(
-	customerRepository CustomerRepository,
+	customerService *app.Service,
 ) Handler {
-	if customerRepository == nil {
-		panic("customerRepository cannot be nil")
+	if customerService == nil {
+		panic("customerService cannot be nil")
 	}
 
 	return Handler{
-		customerRepository: customerRepository,
+		customerService: customerService,
 	}
 }
 
 func (h Handler) RegisterCustomer(ctx context.Context, request RegisterCustomerRequestObject) (RegisterCustomerResponseObject, error) {
 	customerUUID := common.NewUUIDv7()
 
-	err := h.customerRepository.RegisterCustomer(ctx, customerUUID, *request.Body)
+	addr, err := openapiAddressToSharedAddress(request.Body.Address)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("convert address failed: %w", err)
 	}
+
+	err = h.customerService.RegisterCustomer(ctx, app.Customer{
+		CustomerUUID: customerUUID,
+		Name:         request.Body.Name,
+		Email:        string(request.Body.Email),
+		Address:      addr,
+		PhoneNumber:  request.Body.PhoneNumber,
+	})
 
 	return RegisterCustomer201JSONResponse{
 		CustomerUuid: customerUUID,
@@ -43,4 +50,19 @@ func Register(ctx context.Context, e EchoRouter, handler Handler) error {
 	RegisterHandlers(e, NewStrictHandler(handler, nil))
 
 	return nil
+}
+
+func openapiAddressToSharedAddress(addr Address) (shared.Address, error) {
+	sharedAddr, err := shared.NewAddress(
+		addr.Line1,
+		addr.Line2,
+		addr.PostalCode,
+		addr.City,
+		addr.CountryCode,
+	)
+	if err != nil {
+		return shared.Address{}, err
+	}
+
+	return sharedAddr, nil
 }
