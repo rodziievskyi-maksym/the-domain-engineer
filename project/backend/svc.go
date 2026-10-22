@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -79,11 +80,11 @@ func New(
 }
 
 func (s *Svc) Run(ctx context.Context, port string) error {
-	eg, egCtx := errgroup.WithContext(ctx)
-
 	defer s.dbPgx.Close()
 
-	eg.Go(func() error {
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
 		err := s.echoRouter.Start(port)
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			return fmt.Errorf("starting http server failed: %w", err)
@@ -92,14 +93,21 @@ func (s *Svc) Run(ctx context.Context, port string) error {
 		return nil
 	})
 
-	eg.Go(func() error {
-		<-egCtx.Done()
+	g.Go(func() error {
+		<-ctx.Done()
 
+		slog.Info("Shutting down HTTP server")
+
+		// ctx is already canceled, so the shutdown needs its own deadline.
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
 		defer cancel()
 
-		return s.echoRouter.Shutdown(shutdownCtx)
+		if err := s.echoRouter.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("shutting down http server failed: %w", err)
+		}
+
+		return nil
 	})
 
-	return eg.Wait()
+	return g.Wait()
 }

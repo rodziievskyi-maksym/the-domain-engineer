@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	TestNameHeader      = "TestName"
-	CorrelationIDHeader = "Correlation-ID"
+	TestNameHeader          = "TestName"
+	CorrelationIDHttpHeader = "Correlation-ID"
 )
 
 func useMiddlewares(e *echo.Echo) {
@@ -33,25 +33,21 @@ func useMiddlewares(e *echo.Echo) {
 				req := c.Request()
 				ctx := req.Context()
 
-				logger := slog.Default()
+				reqCorrelationID := req.Header.Get(CorrelationIDHttpHeader)
+				if reqCorrelationID == "" {
+					reqCorrelationID = shortuuid.New()
+				}
 
-				if testName := c.Request().Header.Get("TestName"); testName != "" {
+				logger := slog.With("correlation_id", reqCorrelationID)
+
+				if testName := c.Request().Header.Get(TestNameHeader); testName != "" {
 					logger = logger.With("test_name", testName)
 				}
 
-				correlationID := c.Request().Header.Get(CorrelationIDHeader)
-
-				if correlationID == "" {
-					correlationID = shortuuid.New()
-				}
-
-				log.ContextWithCorrelationID(ctx, correlationID)
-				logger = logger.With("correlation_id", correlationID)
-
 				ctx = log.ToContext(ctx, logger)
+				ctx = log.ContextWithCorrelationID(ctx, reqCorrelationID)
 				c.SetRequest(req.WithContext(ctx))
-
-				c.Response().Header().Set(CorrelationIDHeader, correlationID)
+				c.Response().Header().Set(CorrelationIDHttpHeader, reqCorrelationID)
 
 				return next(c)
 			}
