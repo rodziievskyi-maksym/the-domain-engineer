@@ -40,6 +40,9 @@ func (h Handler) RegisterCustomer(ctx context.Context, request RegisterCustomerR
 		Address:      addr,
 		PhoneNumber:  request.Body.PhoneNumber,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return RegisterCustomer201JSONResponse{
 		CustomerUuid: customerUUID,

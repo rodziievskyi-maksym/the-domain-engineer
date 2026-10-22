@@ -19,7 +19,7 @@ func NewEcho() *echo.Echo {
 	e.Server.ReadHeaderTimeout = 5 * time.Second
 
 	useMiddlewares(e)
-	e.HTTPErrorHandler = HandleError
+	e.HTTPErrorHandler = common.EchoErrorHandler
 	e.Logger = common.NewEchoSlogAdapter(slog.Default())
 
 	e.GET("/health", func(c echo.Context) error {
