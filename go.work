@@ -3,5 +3,6 @@ go 1.27.1
 use (
 	./03-http/01-openapi
 	./08-advanced-repositories/03-update-in-tx
+	./08-advanced-repositories/06-update-fn-callback
 	./project
 )
