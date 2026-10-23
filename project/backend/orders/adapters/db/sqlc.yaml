@@ -25,6 +25,8 @@ sql:
               import: "time"
               type: "Time"
 
+          # Use shopspring/decimal for money - floats have precision issues.
+          # See: https://github.com/shopspring/decimal#why-dont-you-just-use-float64
           - db_type: "pg_catalog.numeric"
             go_type:
               import: "github.com/shopspring/decimal"

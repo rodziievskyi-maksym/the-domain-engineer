@@ -57,7 +57,7 @@ type Restaurant struct {
 }
 
 func (s *Service) OnboardRestaurant(ctx context.Context, restaurantUUID RestaurantUUID, req OnboardRestaurant) error {
-	var errorDetails []common.ErrorDetails
+	errorDetails := []common.ErrorDetails{}
 
 	if restaurantUUID.IsZero() {
 		errorDetails = append(errorDetails, common.ErrorDetails{

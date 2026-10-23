@@ -2,12 +2,12 @@ package db
 
 import (
 	"context"
-	"eats/backend/common"
 	"fmt"
 
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"eats/backend/common"
 	"eats/backend/orders/adapters/db/dbmodels"
 	"eats/backend/orders/app"
 )

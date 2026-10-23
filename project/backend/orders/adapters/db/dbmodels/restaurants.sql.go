@@ -15,9 +15,12 @@ import (
 )
 
 const archiveMenuItems = `-- name: ArchiveMenuItems :exec
-UPDATE orders.restaurant_menu_items
-SET is_archived = TRUE
-WHERE restaurant_menu_item_uuid = ANY ($1::UUID[])
+UPDATE
+	orders.restaurant_menu_items
+SET
+	is_archived = TRUE
+WHERE
+	restaurant_menu_item_uuid = ANY ($1::UUID[])
 `
 
 func (q *Queries) ArchiveMenuItems(ctx context.Context, dollar_1 []common.UUID) error {
@@ -48,10 +51,15 @@ func (q *Queries) GetRestaurant(ctx context.Context, restaurantUuid app.Restaura
 }
 
 const getRestaurantMenu = `-- name: GetRestaurantMenu :many
-SELECT restaurant_menu_items.restaurant_menu_item_uuid, restaurant_menu_items.restaurant_uuid, restaurant_menu_items.name, restaurant_menu_items.gross_price, restaurant_menu_items.ordering, restaurant_menu_items.is_archived
-FROM orders.restaurant_menu_items AS restaurant_menu_items
-WHERE restaurant_uuid = $1 AND is_archived = FALSE
-ORDER BY ordering ASC
+SELECT
+	restaurant_menu_items.restaurant_menu_item_uuid, restaurant_menu_items.restaurant_uuid, restaurant_menu_items.name, restaurant_menu_items.gross_price, restaurant_menu_items.ordering, restaurant_menu_items.is_archived
+FROM
+	orders.restaurant_menu_items AS restaurant_menu_items
+WHERE
+	restaurant_uuid = $1 AND
+	is_archived = FALSE
+ORDER BY
+	ordering ASC
 `
 
 type GetRestaurantMenuRow struct {
@@ -123,24 +131,27 @@ func (q *Queries) UpsertRestaurant(ctx context.Context, arg UpsertRestaurantPara
 	return i, err
 }
 
-const upsertRestaurantMenu = `-- name: UpsertRestaurantMenu :execrows
-INSERT INTO orders.restaurant_menu_items (restaurant_menu_item_uuid,
-                                          restaurant_uuid,
-                                          name,
-                                          gross_price,
-                                          ordering,
-                                          is_archived
+const upsertRestaurantMenuItem = `-- name: UpsertRestaurantMenuItem :execrows
+INSERT INTO orders.restaurant_menu_items (
+	restaurant_menu_item_uuid,
+	restaurant_uuid,
+	name,
+	gross_price,
+	ordering,
+	is_archived
 )
-VALUES ($1, $2, $3, $4, $5, $6)
+VALUES
+	($1, $2, $3, $4, $5, $6)
 ON CONFLICT (restaurant_menu_item_uuid) DO UPDATE SET
-    name = EXCLUDED.name,
-    gross_price = EXCLUDED.gross_price,
-    ordering = EXCLUDED.ordering
-WHERE restaurant_menu_items.restaurant_uuid = EXCLUDED.restaurant_uuid
-RETURNING restaurant_menu_item_uuid, restaurant_uuid, name, gross_price, ordering, is_archived
+	name = EXCLUDED.name,
+	gross_price = EXCLUDED.gross_price,
+	ordering = EXCLUDED.ordering,
+	is_archived = EXCLUDED.is_archived
+WHERE
+	restaurant_menu_items.restaurant_uuid = EXCLUDED.restaurant_uuid
 `
 
-type UpsertRestaurantMenuParams struct {
+type UpsertRestaurantMenuItemParams struct {
 	RestaurantMenuItemUuid app.RestaurantMenuItemUUID
 	RestaurantUuid         app.RestaurantUUID
 	Name                   string
@@ -149,8 +160,8 @@ type UpsertRestaurantMenuParams struct {
 	IsArchived             bool
 }
 
-func (q *Queries) UpsertRestaurantMenu(ctx context.Context, arg UpsertRestaurantMenuParams) (int64, error) {
-	result, err := q.db.Exec(ctx, upsertRestaurantMenu,
+func (q *Queries) UpsertRestaurantMenuItem(ctx context.Context, arg UpsertRestaurantMenuItemParams) (int64, error) {
+	result, err := q.db.Exec(ctx, upsertRestaurantMenuItem,
 		arg.RestaurantMenuItemUuid,
 		arg.RestaurantUuid,
 		arg.Name,
