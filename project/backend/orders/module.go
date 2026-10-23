@@ -38,8 +38,9 @@ var embedMigrations embed.FS
 
 func (m *Module) Init(ctx context.Context) error {
 	customerRepo := db.NewCustomerRepository(m.pgxDb)
+	restaurantRepo := db.NewRestaurantRepository(m.pgxDb)
 
-	appService := app.NewService(customerRepo, m.modules)
+	appService := app.NewService(customerRepo, restaurantRepo, m.modules)
 
 	httpHandler := http2.NewHandler(
 		appService,

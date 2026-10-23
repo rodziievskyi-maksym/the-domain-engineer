@@ -50,7 +50,23 @@ func (r *RestaurantRepository) UpsertRestaurant(ctx context.Context, restaurantU
 		return common.NewInvalidInputError("cannot-change-currency", "cannot change restaurant currency once set")
 	}
 
-	// TODO: upsert menu items
+	for _, item := range restaurant.MenuItems {
+		rowsAffected, err := queries.UpsertRestaurantMenu(ctx, dbmodels.UpsertRestaurantMenuParams{
+			RestaurantMenuItemUuid: item.MenuItemUUID,
+			RestaurantUuid:         restaurantUUID,
+			Name:                   item.Name,
+			GrossPrice:             item.GrossPrice,
+			Ordering:               item.Ordering,
+			IsArchived:             item.IsArchived,
+		})
+		if err != nil {
+			return fmt.Errorf("upsert restaurant menu item failed: %w", err)
+		}
+
+		if rowsAffected == 0 {
+			return common.NewInvalidInputError("menu-item-of-another-restaurant", "menu item of another restaurant")
+		}
+	}
 
 	return nil
 }

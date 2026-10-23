@@ -7,6 +7,7 @@ package dbmodels
 import (
 	"eats/backend/common/shared"
 	"eats/backend/orders/app"
+	"github.com/shopspring/decimal"
 )
 
 type OrdersCustomer struct {
@@ -15,4 +16,21 @@ type OrdersCustomer struct {
 	Email        string
 	Address      shared.Address
 	PhoneNumber  string
+}
+
+type OrdersRestaurant struct {
+	RestaurantUuid app.RestaurantUUID
+	Name           string
+	Description    string
+	Address        shared.Address
+	Currency       shared.Currency
+}
+
+type OrdersRestaurantMenuItem struct {
+	RestaurantMenuItemUuid app.RestaurantMenuItemUUID
+	RestaurantUuid         app.RestaurantUUID
+	Name                   string
+	GrossPrice             decimal.Decimal
+	Ordering               float64
+	IsArchived             bool
 }
