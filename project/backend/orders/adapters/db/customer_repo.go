@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"eats/backend/orders/app"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"eats/backend/orders/adapters/db/dbmodels"
+	"eats/backend/orders/app"
 )
 
 type CustomerRepository struct {

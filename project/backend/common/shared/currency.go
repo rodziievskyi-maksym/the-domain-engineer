@@ -1,8 +1,9 @@
 package shared
 
 import (
-	"eats/backend/common"
 	"fmt"
+
+	"eats/backend/common"
 )
 
 type Currency struct {
@@ -13,6 +14,12 @@ func (c Currency) Code() string {
 	return c.String()
 }
 
+type CurrencyType string
+
+func (c CurrencyType) Values() []string {
+	return []string{"USD", "EUR", "GBP", "JPY", "PLN"}
+}
+
 func MustNewCurrency(value string) Currency {
 	c := Currency{}
 	err := c.UnmarshalText([]byte(value))
@@ -21,10 +28,4 @@ func MustNewCurrency(value string) Currency {
 	}
 
 	return c
-}
-
-type CurrencyType string
-
-func (c CurrencyType) Values() []string {
-	return []string{"USD", "EUR", "GBP", "JPY", "PLN"}
 }

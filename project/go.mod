@@ -13,6 +13,7 @@ require (
 	github.com/labstack/gommon v0.4.2
 	github.com/lithammer/shortuuid/v3 v3.0.7
 	github.com/oapi-codegen/runtime v1.2.0
+	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.19.0
 )
