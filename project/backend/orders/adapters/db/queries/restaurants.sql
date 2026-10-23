@@ -39,5 +39,10 @@ FROM orders.restaurant_menu_items AS restaurant_menu_items
 WHERE restaurant_uuid = $1 AND is_archived = FALSE
 ORDER BY ordering ASC;
 
+-- name: ArchiveMenuItems :exec
+UPDATE orders.restaurant_menu_items
+SET is_archived = TRUE
+WHERE restaurant_menu_item_uuid = ANY ($1::UUID[]);
+
 
 
