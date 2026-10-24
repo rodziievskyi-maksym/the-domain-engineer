@@ -104,14 +104,56 @@ func (r *OrganizationsRepository) UpdateOrganization(
 	orgID uuid.UUID,
 	updateFn func(ctx context.Context, org *Organization) error,
 ) (Organization, error) {
+	var org Organization
+
 	err := UpdateInTx(ctx, r.db, func(ctx context.Context, tx pgx.Tx) error {
-		// TODO: load the organization with its licenses, hand them to updateFn,
-		// and persist what it leaves behind.
+		orgRow, err := getOrganization(ctx, tx, orgID)
+		if err != nil {
+			return fmt.Errorf("failed to get organization %s: %w", orgID, err)
+		}
+
+		licenceRows, err := getLicenses(ctx, tx, orgRow.OrganizationID)
+		if err != nil {
+			return fmt.Errorf("failed to get licenses of organization %s: %w", orgID, err)
+		}
+
+		licences := make([]License, 0, len(licenceRows)) //HEAP! First Retry -> 0xCCC
+		for _, row := range licenceRows {
+			licences = append(licences, License{
+				LicenseID: row.LicenseID,
+				ProductID: row.ProductID,
+				Seats:     row.Seats,
+			})
+		}
+
+		org = Organization{
+			OrganizationID: orgRow.OrganizationID,
+			Name:           orgRow.Name,
+			Licenses:       licences, // First Retry -> 0xCCC
+		}
+
+		err = updateFn(ctx, &org)
+		if err != nil {
+			return fmt.Errorf("failed to update organization %s: %w", org.OrganizationID, err)
+		}
+
+		err = setOrganizationName(ctx, tx, org.OrganizationID, org.Name)
+		if err != nil {
+			return fmt.Errorf("failed to update organization name: %w", err)
+		}
+
+		for _, licence := range org.Licenses {
+			err := setLicenseSeats(ctx, tx, licence.LicenseID, licence.Seats)
+			if err != nil {
+				return fmt.Errorf("failed to update license seats: %w", err)
+			}
+		}
+
 		return nil
 	})
 	if err != nil {
 		return Organization{}, err
 	}
 
-	return Organization{}, nil
+	return org, nil
 }
