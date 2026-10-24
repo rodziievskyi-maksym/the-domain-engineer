@@ -209,10 +209,85 @@ func TestUpdateOrganization_two_concurrent_seat_increments_both_land(t *testing.
 	assert.Empty(t, diff, "one increment was lost: both callers read 1 seat and wrote 2. Read inside the transaction, so the retry in UpdateInTx runs the read again on fresh data (-want +got):\n%s", diff)
 }
 
+func TestUpdateOrganization_three_concurrent_seat_increments_all_land(t *testing.T) {
+	ctx := context.Background()
+	db, repo := newRepository(t)
+
+	analytics := seedProduct(t, db, "Analytics")
+	org := seedOrganization(t, db, "Acme")
+	analyticsLicense := seedLicense(t, db, org.OrganizationID, analytics.ProductID, 1)
+
+	// Бар'єр синхронізації для 3 горутин:
+	// Всі 3 горутини повинні зайти у свій callback і прочитати Seats = 1
+	// ДО того, як будь-яка з них піде далі до UPDATE/COMMIT.
+	const numGoroutines = 10
+
+	var readBarrier sync.WaitGroup
+	readBarrier.Add(numGoroutines)
+
+	// Канал, який розблокує всі 3 горутини одночасно після того, як кожна засигналить у WaitGroup
+	allRead := make(chan struct{})
+
+	addOneSeat := func() error {
+		var signalOnce sync.Once
+
+		_, err := repo.UpdateOrganization(ctx, org.OrganizationID, func(ctx context.Context, org *Organization) error {
+			// Сигналізуємо, що ПОТОЧНА горутина прочитала дані.
+			// sync.Once гарантує, що при ретраї (Retry) signalOnce більше не буде кликати Done()
+			signalOnce.Do(func() {
+				readBarrier.Done()
+			})
+
+			// Чекаємо, поки ВСІ 3 горутини дочитають свої початкові дані (Seats = 1)
+			waitFor(t, allRead)
+
+			licenses := slices.Clone(org.Licenses)
+			//org.Licenses[0].Seats++
+			licenses[0].Seats++
+			org.Licenses = licenses
+
+			return nil
+		})
+
+		return err
+	}
+
+	// Горутина-координатор: чекає, поки всі 3 засигналять у readBarrier,
+	// і відкриває allRead для всіх 3 горутин одночасно.
+	go func() {
+		readBarrier.Wait()
+		close(allRead)
+	}()
+
+	errs := make(chan error, numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			errs <- addOneSeat()
+		}()
+	}
+
+	// Чекаємо завершення виконання всіх 3 горутин
+	for i := 0; i < numGoroutines; i++ {
+		require.NoError(t, <-errs)
+	}
+
+	// Початкове = 1, додаємо 3 інкременти -> очікуємо 4
+	expected := Organization{
+		OrganizationID: org.OrganizationID,
+		Name:           "Acme",
+		Licenses: []License{
+			{LicenseID: analyticsLicense.LicenseID, ProductID: analytics.ProductID, Seats: 11},
+		},
+	}
+
+	diff := cmp.Diff(expected, readOrganization(t, db, org.OrganizationID))
+	assert.Empty(t, diff, "increments were lost: all callers read 1 seat concurrently. Read inside the transaction, so retry in UpdateInTx runs read again (-want +got):\n%s", diff)
+}
+
 func newRepository(t *testing.T) (*pgxpool.Pool, *OrganizationsRepository) {
 	t.Helper()
 
-	postgresURL := os.Getenv("POSTGRES_URL")
+	postgresURL := os.Getenv("POSTGRES_URL_2")
 	require.NotEmpty(t, postgresURL, "POSTGRES_URL must point at a running PostgreSQL")
 
 	ctx := context.Background()
