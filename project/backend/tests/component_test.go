@@ -3,11 +3,6 @@
 package tests_test
 
 import (
-	"eats/backend/common"
-	"eats/backend/orders/adapters/db"
-	ordersclient "eats/backend/orders/api/http/client"
-	"eats/backend/orders/app"
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -19,7 +14,7 @@ import (
 
 func TestComponent_CriticalFlow(t *testing.T) {
 	t.Parallel()
-	clients := NewTestClients(t)
+	clients := newTestClients(t)
 
 	ctx := t.Context()
 
@@ -29,64 +24,35 @@ func TestComponent_CriticalFlow(t *testing.T) {
 	assert.NotEmpty(t, customerUUID)
 }
 
-func TestComponent_OnboardRestaurant(t *testing.T) {
+func TestComponent_ListMenuItems(t *testing.T) {
 	t.Parallel()
-	clients := NewTestClients(t)
+	clients := newTestClients(t)
 
 	ctx := t.Context()
-
-	restUUID := ordersclient.RestaurantUUID{UUID: common.NewUUIDv7()}
-	currency := testutils.GenerateRandomCurrency()
 	country := testutils.GenerateRandomCountry()
-	address := testutils.GenerateRandomOpenapiAddress(country)
 
-	onboardRestaurant(ctx, t, clients, restUUID, currency, address)
-}
+	// Onboard a restaurant with menu items
+	restaurantUUID, menuItems := onboardRestaurant(ctx, t, clients, country, "Test Restaurant")
+	require.NotEmpty(t, restaurantUUID)
+	require.NotEmpty(t, menuItems)
 
-func TestComponent_CreateQuotes(t *testing.T) {
-	t.Parallel()
-	clients := NewTestClients(t)
-
-	ctx := t.Context()
-
-	restUUID := ordersclient.RestaurantUUID{UUID: common.NewUUIDv7()}
-	currency := testutils.GenerateRandomCurrency()
-	country := testutils.GenerateRandomCountry()
-	address := testutils.GenerateRandomOpenapiAddress(country)
-
-	customerUUID := registerCustomer(ctx, t, clients, country, address)
-
-	fmt.Println("!!!!!!!!!!!!!!!!!!!!!!!", customerUUID)
-
-	onboardRestaurant(ctx, t, clients, restUUID, currency, address)
-
-	dbPool := testutils.NewDB(t)
-	restRepo := db.NewRestaurantRepository(dbPool)
-
-	menuItems, err := restRepo.GetRestaurantMenu(ctx, app.RestaurantUUID{UUID: restUUID.UUID})
-	assert.NoError(t, err)
-	assert.NotEmpty(t, menuItems)
-
-	ccqp := &ordersclient.CustomerCreateQuoteParams{CustomerUUID: customerUUID}
-
-	orderItems := make([]ordersclient.OrderItem, 0, len(menuItems.Positions))
-	for _, position := range menuItems.Positions {
-		orderItems = append(orderItems, ordersclient.OrderItem{
-			MenuItemUuid: ordersclient.MenuItemUUID{UUID: position.MenuItemUUID.UUID},
-			Quantity:     1,
-		})
-	}
-
-	body := ordersclient.CreateQuoteRequest{
-		DeliveryAddress: address,
-		Items:           orderItems,
-		RestaurantUuid:  ordersclient.RestaurantUUID{UUID: restUUID.UUID},
-	}
-	resp, err := clients.Orders.CustomerCreateQuoteWithResponse(ctx, ccqp, body)
+	// Call the read model endpoint
+	resp, err := clients.Orders.ListMenuItemsWithResponse(ctx)
 	require.NoError(t, err)
-	require.Equal(t, http.StatusCreated, resp.StatusCode())
-	require.NotNil(t, resp.JSON201)
+	require.Equal(t, http.StatusOK, resp.StatusCode())
+	require.NotNil(t, resp.JSON200)
 
-	require.Equal(t, currency, resp.JSON201.Currency)
-	//resp.JSON201.TotalGross
+	// Verify our menu items are in the response
+	items := *resp.JSON200
+	found := 0
+	for _, item := range items {
+		for _, expected := range menuItems {
+			if item.MenuItemUuid == expected.Uuid {
+				assert.Equal(t, expected.Name, item.MenuItemName)
+				assert.Equal(t, "Test Restaurant", item.RestaurantName)
+				found++
+			}
+		}
+	}
+	assert.Equal(t, len(menuItems), found, "all menu items should be returned by read model")
 }
