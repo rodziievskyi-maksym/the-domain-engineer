@@ -29,10 +29,13 @@ func (q *Queries) ArchiveMenuItems(ctx context.Context, dollar_1 []common.UUID) 
 }
 
 const getMenuItemsByUUIDs = `-- name: GetMenuItemsByUUIDs :many
-SELECT restaurant_menu_items.restaurant_menu_item_uuid, restaurant_menu_items.restaurant_uuid, restaurant_menu_items.name, restaurant_menu_items.gross_price, restaurant_menu_items.ordering, restaurant_menu_items.is_archived
-FROM orders.restaurant_menu_items AS restaurant_menu_items
-WHERE restaurant_uuid = $1
-  AND restaurant_menu_item_uuid = ANY ($2::UUID[])
+SELECT
+	restaurant_menu_items.restaurant_menu_item_uuid, restaurant_menu_items.restaurant_uuid, restaurant_menu_items.name, restaurant_menu_items.gross_price, restaurant_menu_items.ordering, restaurant_menu_items.is_archived
+FROM
+	orders.restaurant_menu_items AS restaurant_menu_items
+WHERE
+	restaurant_uuid = $1 AND
+	restaurant_menu_item_uuid = ANY ($2::UUID[])
 `
 
 type GetMenuItemsByUUIDsParams struct {

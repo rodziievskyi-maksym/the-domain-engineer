@@ -16,28 +16,21 @@ import (
 )
 
 const addQuote = `-- name: AddQuote :exec
-INSERT INTO orders.quotes (quote_uuid,
-                           customer_uuid,
-                           restaurant_uuid,
-                           delivery_address,
-                           created_at,
-                           items_subtotal_gross,
-                           service_fee_gross,
-                           delivery_fee_gross,
-                           total_amount_gross,
-                           total_tax,
-                           currency)
-VALUES ($1,
-        $2,
-        $3,
-        $4,
-        $5,
-        $6,
-        $7,
-        $8,
-        $9,
-        $10,
-        $11)
+INSERT INTO orders.quotes (
+	quote_uuid,
+	customer_uuid,
+	restaurant_uuid,
+	delivery_address,
+	items_subtotal_gross,
+	service_fee_gross,
+	delivery_fee_gross,
+	total_amount_gross,
+	total_tax,
+	created_at,
+	currency
+)
+VALUES
+	($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 `
 
 type AddQuoteParams struct {
@@ -45,27 +38,28 @@ type AddQuoteParams struct {
 	CustomerUuid       app.CustomerUUID
 	RestaurantUuid     app.RestaurantUUID
 	DeliveryAddress    shared.Address
-	CreatedAt          time.Time
 	ItemsSubtotalGross decimal.Decimal
 	ServiceFeeGross    decimal.Decimal
 	DeliveryFeeGross   decimal.Decimal
 	TotalAmountGross   decimal.Decimal
 	TotalTax           decimal.Decimal
+	CreatedAt          time.Time
 	Currency           shared.Currency
 }
 
+// Quotes are immutable - no update query exists. If needed, create a new quote.
 func (q *Queries) AddQuote(ctx context.Context, arg AddQuoteParams) error {
 	_, err := q.db.Exec(ctx, addQuote,
 		arg.QuoteUuid,
 		arg.CustomerUuid,
 		arg.RestaurantUuid,
 		arg.DeliveryAddress,
-		arg.CreatedAt,
 		arg.ItemsSubtotalGross,
 		arg.ServiceFeeGross,
 		arg.DeliveryFeeGross,
 		arg.TotalAmountGross,
 		arg.TotalTax,
+		arg.CreatedAt,
 		arg.Currency,
 	)
 	return err
@@ -80,9 +74,13 @@ type AddQuoteItemsParams struct {
 }
 
 const getQuote = `-- name: GetQuote :one
-SELECT quote_uuid, customer_uuid, restaurant_uuid, delivery_address, created_at, items_subtotal_gross, service_fee_gross, delivery_fee_gross, total_amount_gross, total_tax, currency
-FROM orders.quotes AS quotes
-WHERE quote_uuid = $1 LIMIT 1
+SELECT
+	quote_uuid, customer_uuid, restaurant_uuid, delivery_address, created_at, items_subtotal_gross, service_fee_gross, delivery_fee_gross, total_amount_gross, total_tax, currency
+FROM
+	orders.quotes AS quotes
+WHERE
+	quote_uuid = $1
+LIMIT 1
 `
 
 func (q *Queries) GetQuote(ctx context.Context, quoteUuid app.QuoteUUID) (OrdersQuote, error) {
