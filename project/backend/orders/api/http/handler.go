@@ -2,7 +2,6 @@ package http
 
 import (
 	"context"
-
 	"eats/backend/common"
 	"eats/backend/common/shared"
 	"eats/backend/orders/app"
@@ -89,11 +88,11 @@ func (h Handler) OnboardRestaurant(ctx context.Context, request OnboardRestauran
 		ctx,
 		request.RestaurantUuid,
 		app.OnboardRestaurant{
-			request.Body.Name,
-			addr,
-			request.Body.Currency,
-			request.Body.Description,
-			menuItems,
+			Name:        request.Body.Name,
+			Address:     addr,
+			Currency:    request.Body.Currency,
+			Description: request.Body.Description,
+			MenuItems:   menuItems,
 		},
 	)
 	if err != nil {
@@ -101,6 +100,41 @@ func (h Handler) OnboardRestaurant(ctx context.Context, request OnboardRestauran
 	}
 
 	return OnboardRestaurant204Response{}, nil
+}
+
+func (h Handler) CustomerCreateQuote(ctx context.Context, request CustomerCreateQuoteRequestObject) (CustomerCreateQuoteResponseObject, error) {
+	addr, err := openapiAddressToSharedAddress(request.Body.DeliveryAddress)
+	if err != nil {
+		return nil, common.NewInvalidInputError("invalid-address", "invalid address: %s", err)
+	}
+
+	appCreateQuoteItems := make(app.CreateQuoteItems, 0, len(request.Body.Items))
+	for _, item := range request.Body.Items {
+		appCreateQuoteItems = append(appCreateQuoteItems, app.CreateQuoteItem{
+			MenuItemUUID: item.MenuItemUuid,
+			Quantity:     item.Quantity,
+		})
+	}
+
+	quote, err := h.service.CreateQuote(ctx, app.CreateQuote{
+		CustomerUUID:    request.Params.CustomerUUID,
+		RestaurantUUID:  request.Body.RestaurantUuid,
+		QuoteItems:      appCreateQuoteItems,
+		DeliveryAddress: addr,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return CustomerCreateQuote201JSONResponse{
+		Currency:           quote.Currency,
+		DeliveryFeeGross:   quote.DeliveryFeeGross,
+		ExpiresAt:          quote.ExpirationTime(),
+		ItemsSubtotalGross: quote.ItemsSubtotalGross,
+		QuoteUuid:          quote.QuoteUUID,
+		ServiceFeeGross:    quote.ServiceFeeGross,
+		TotalGross:         quote.TotalAmountGross,
+		TotalTax:           quote.TotalTax,
+	}, nil
 }
 
 func Register(ctx context.Context, e EchoRouter, handler Handler) error {
