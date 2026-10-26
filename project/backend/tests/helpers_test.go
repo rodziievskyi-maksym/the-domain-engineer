@@ -4,12 +4,14 @@ package tests_test
 
 import (
 	"context"
+	"eats/backend/common"
 	"encoding/json"
 	"net/http"
 	"testing"
 
 	gofakeit "github.com/brianvoe/gofakeit/v7"
 	openapi_types "github.com/oapi-codegen/runtime/types"
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
 
 	"eats/backend/common/shared"
@@ -17,13 +19,13 @@ import (
 	ordersclient "eats/backend/orders/api/http/client"
 )
 
-func registerCustomer(ctx context.Context, t *testing.T, clients testClients, country shared.CountryCode) ordersclient.CustomerUUID {
+func registerCustomer(ctx context.Context, t *testing.T, clients TestClients, country shared.CountryCode, address ordersclient.Address) ordersclient.CustomerUUID {
 	t.Helper()
 
 	customerToCreate := ordersclient.RegisterCustomer{
 		Name:        gofakeit.Name(),
 		Email:       openapi_types.Email(gofakeit.Email()),
-		Address:     testutils.GenerateRandomOpenapiAddress(country),
+		Address:     address,
 		PhoneNumber: gofakeit.Phone(),
 	}
 
@@ -35,7 +37,7 @@ func registerCustomer(ctx context.Context, t *testing.T, clients testClients, co
 	return resp.JSON201.CustomerUuid
 }
 
-func registerCustomerInCity(ctx context.Context, t *testing.T, clients testClients, country shared.CountryCode, city string) ordersclient.CustomerUUID {
+func registerCustomerInCity(ctx context.Context, t *testing.T, clients TestClients, country shared.CountryCode, city string) ordersclient.CustomerUUID {
 	t.Helper()
 
 	customerToCreate := ordersclient.RegisterCustomer{
@@ -51,6 +53,31 @@ func registerCustomerInCity(ctx context.Context, t *testing.T, clients testClien
 	require.NotNil(t, resp.JSON201)
 
 	return resp.JSON201.CustomerUuid
+}
+
+func onboardRestaurant(ctx context.Context, t *testing.T, clients TestClients, restaurantUUID ordersclient.RestaurantUUID, currency shared.Currency, address ordersclient.Address) {
+	t.Helper()
+
+	menuItem := ordersclient.MenuItem{
+		GrossPrice: decimal.New(10, 1),
+		Name:       gofakeit.Name(),
+		Ordering:   1,
+		Uuid:       ordersclient.MenuItemUUID{UUID: common.NewUUIDv7()},
+	}
+
+	restaurantToCreate := ordersclient.OnboardRestaurant{
+		Address:     address,
+		Currency:    currency,
+		Description: gofakeit.Quote(),
+		Name:        gofakeit.Name(),
+		MenuItems:   []ordersclient.MenuItem{menuItem},
+	}
+
+	operatorUUID := &ordersclient.OnboardRestaurantParams{OperatorUUID: common.NewUUIDv7()}
+
+	resp, err := clients.Orders.OnboardRestaurantWithResponse(ctx, restaurantUUID, operatorUUID, restaurantToCreate)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, resp.StatusCode())
 }
 
 func assertJsonReprEqual(t *testing.T, expected, actual any) {

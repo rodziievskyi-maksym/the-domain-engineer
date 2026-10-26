@@ -18,11 +18,11 @@ import (
 	ordersclient "eats/backend/orders/api/http/client"
 )
 
-type testClients struct {
+type TestClients struct {
 	Orders *ordersclient.ClientWithResponses
 }
 
-func newTestClients(t *testing.T) testClients {
+func NewTestClients(t *testing.T) TestClients {
 	t.Helper()
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
@@ -47,7 +47,7 @@ func newTestClients(t *testing.T) testClients {
 		t.Fatalf("creating orders client: %v", err)
 	}
 
-	return testClients{
+	return TestClients{
 		Orders: orders,
 	}
 }

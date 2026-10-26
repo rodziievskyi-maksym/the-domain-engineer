@@ -16,6 +16,13 @@ func GenerateRandomCountry() shared.CountryCode {
 	return shared.MustNewCountryCode(value)
 }
 
+func GenerateRandomCurrency() shared.Currency {
+	values := shared.CurrencyType("").Values()
+	value := values[rand.Intn(len(values))]
+
+	return shared.MustNewCurrency(value)
+}
+
 func GenerateRandomOpenapiAddress(country shared.CountryCode) client.Address {
 	address := gofakeit.Address()
 
