@@ -29,6 +29,7 @@ func (r ReadModel) ListMenuItemsWithRestaurant(ctx context.Context, filter http.
 	list, err := queries.ListMenuItemsWithRestaurant(ctx, dbmodels.ListMenuItemsWithRestaurantParams{
 		RestaurantNameFilter: filter.RestaurantName,
 		OrderBy:              filter.OrderBy,
+		SearchTerm:           filter.Search,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error listing menu items: %w", err)

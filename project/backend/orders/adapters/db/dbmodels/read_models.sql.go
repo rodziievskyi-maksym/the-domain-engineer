@@ -26,17 +26,22 @@ JOIN orders.restaurants AS r ON rmi.restaurant_uuid = r.restaurant_uuid
 WHERE rmi.is_archived = FALSE
 AND ($1::text IS NULL
     OR LOWER(r.name) LIKE LOWER('%' || $1::text || '%'))
+AND ($2::text IS NULL
+     OR to_tsvector('english', rmi.name) @@ plainto_tsquery('english', $2::text))
 ORDER BY
-    CASE WHEN $2::text = 'price_asc' THEN rmi.gross_price END ASC,
-    CASE WHEN $2::text = 'price_desc' THEN rmi.gross_price END DESC,
-    CASE WHEN $2::text = 'name_asc' THEN rmi.name END ASC,
-    CASE WHEN $2::text = 'name_desc' THEN rmi.name END DESC,
-    CASE WHEN ($2::text IS NULL OR $2::text = 'default') THEN r.name END ASC,
-    CASE WHEN ($2::text IS NULL OR $2::text = 'default') THEN rmi.ordering END ASC
+    CASE WHEN $3::text = 'relevance'
+        THEN ts_rank(to_tsvector('english', rmi.name), plainto_tsquery('english', $2::text)) END DESC,
+    CASE WHEN $3::text = 'price_asc' THEN rmi.gross_price END ASC,
+    CASE WHEN $3::text = 'price_desc' THEN rmi.gross_price END DESC,
+    CASE WHEN $3::text = 'name_asc' THEN rmi.name END ASC,
+    CASE WHEN $3::text = 'name_desc' THEN rmi.name END DESC,
+    CASE WHEN ($3::text IS NULL OR $3::text = 'default') THEN r.name END ASC,
+    CASE WHEN ($3::text IS NULL OR $3::text = 'default') THEN rmi.ordering END ASC
 `
 
 type ListMenuItemsWithRestaurantParams struct {
 	RestaurantNameFilter *string
+	SearchTerm           *string
 	OrderBy              *string
 }
 
@@ -50,7 +55,7 @@ type ListMenuItemsWithRestaurantRow struct {
 }
 
 func (q *Queries) ListMenuItemsWithRestaurant(ctx context.Context, arg ListMenuItemsWithRestaurantParams) ([]ListMenuItemsWithRestaurantRow, error) {
-	rows, err := q.db.Query(ctx, listMenuItemsWithRestaurant, arg.RestaurantNameFilter, arg.OrderBy)
+	rows, err := q.db.Query(ctx, listMenuItemsWithRestaurant, arg.RestaurantNameFilter, arg.SearchTerm, arg.OrderBy)
 	if err != nil {
 		return nil, err
 	}

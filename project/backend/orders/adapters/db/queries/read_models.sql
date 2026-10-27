@@ -11,7 +11,11 @@ JOIN orders.restaurants AS r ON rmi.restaurant_uuid = r.restaurant_uuid
 WHERE rmi.is_archived = FALSE
 AND (sqlc.narg(restaurant_name_filter)::text IS NULL
     OR LOWER(r.name) LIKE LOWER('%' || sqlc.narg(restaurant_name_filter)::text || '%'))
+AND (sqlc.narg(search_term)::text IS NULL
+     OR to_tsvector('english', rmi.name) @@ plainto_tsquery('english', sqlc.narg(search_term)::text))
 ORDER BY
+    CASE WHEN sqlc.narg(order_by)::text = 'relevance'
+        THEN ts_rank(to_tsvector('english', rmi.name), plainto_tsquery('english', sqlc.narg(search_term)::text)) END DESC,
     CASE WHEN sqlc.narg(order_by)::text = 'price_asc' THEN rmi.gross_price END ASC,
     CASE WHEN sqlc.narg(order_by)::text = 'price_desc' THEN rmi.gross_price END DESC,
     CASE WHEN sqlc.narg(order_by)::text = 'name_asc' THEN rmi.name END ASC,
