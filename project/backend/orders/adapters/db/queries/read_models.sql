@@ -9,4 +9,12 @@ SELECT
 FROM orders.restaurant_menu_items AS rmi
 JOIN orders.restaurants AS r ON rmi.restaurant_uuid = r.restaurant_uuid
 WHERE rmi.is_archived = FALSE
-ORDER BY r.name, rmi.ordering;
+AND (sqlc.narg(restaurant_name_filter)::text IS NULL
+    OR LOWER(r.name) LIKE LOWER('%' || sqlc.narg(restaurant_name_filter)::text || '%'))
+ORDER BY
+    CASE WHEN sqlc.narg(order_by)::text = 'price_asc' THEN rmi.gross_price END ASC,
+    CASE WHEN sqlc.narg(order_by)::text = 'price_desc' THEN rmi.gross_price END DESC,
+    CASE WHEN sqlc.narg(order_by)::text = 'name_asc' THEN rmi.name END ASC,
+    CASE WHEN sqlc.narg(order_by)::text = 'name_desc' THEN rmi.name END DESC,
+    CASE WHEN (sqlc.narg(order_by)::text IS NULL OR sqlc.narg(order_by)::text = 'default') THEN r.name END ASC,
+    CASE WHEN (sqlc.narg(order_by)::text IS NULL OR sqlc.narg(order_by)::text = 'default') THEN rmi.ordering END ASC;

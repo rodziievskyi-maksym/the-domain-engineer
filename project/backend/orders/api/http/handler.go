@@ -42,6 +42,12 @@ func NewHandler(
 	}
 }
 
+func Register(ctx context.Context, e EchoRouter, handler Handler) error {
+	RegisterHandlers(e, NewStrictHandler(handler, nil))
+
+	return nil
+}
+
 func (h Handler) RegisterCustomer(ctx context.Context, request RegisterCustomerRequestObject) (RegisterCustomerResponseObject, error) {
 	addr, err := openapiAddressToSharedAddress(request.Body.Address)
 	if err != nil {
@@ -181,10 +187,4 @@ func (h Handler) ListMenuItems(ctx context.Context, request ListMenuItemsRequest
 	}
 
 	return ListMenuItems200JSONResponse(items), nil
-}
-
-func Register(ctx context.Context, e EchoRouter, handler Handler) error {
-	RegisterHandlers(e, NewStrictHandler(handler, nil))
-
-	return nil
 }

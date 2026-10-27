@@ -24,8 +24,21 @@ SELECT
 FROM orders.restaurant_menu_items AS rmi
 JOIN orders.restaurants AS r ON rmi.restaurant_uuid = r.restaurant_uuid
 WHERE rmi.is_archived = FALSE
-ORDER BY r.name, rmi.ordering
+AND ($1::text IS NULL
+    OR LOWER(r.name) LIKE LOWER('%' || $1::text || '%'))
+ORDER BY
+    CASE WHEN $2::text = 'price_asc' THEN rmi.gross_price END ASC,
+    CASE WHEN $2::text = 'price_desc' THEN rmi.gross_price END DESC,
+    CASE WHEN $2::text = 'name_asc' THEN rmi.name END ASC,
+    CASE WHEN $2::text = 'name_desc' THEN rmi.name END DESC,
+    CASE WHEN ($2::text IS NULL OR $2::text = 'default') THEN r.name END ASC,
+    CASE WHEN ($2::text IS NULL OR $2::text = 'default') THEN rmi.ordering END ASC
 `
+
+type ListMenuItemsWithRestaurantParams struct {
+	RestaurantNameFilter *string
+	OrderBy              *string
+}
 
 type ListMenuItemsWithRestaurantRow struct {
 	MenuItemUuid   app.RestaurantMenuItemUUID
@@ -36,8 +49,8 @@ type ListMenuItemsWithRestaurantRow struct {
 	RestaurantName string
 }
 
-func (q *Queries) ListMenuItemsWithRestaurant(ctx context.Context) ([]ListMenuItemsWithRestaurantRow, error) {
-	rows, err := q.db.Query(ctx, listMenuItemsWithRestaurant)
+func (q *Queries) ListMenuItemsWithRestaurant(ctx context.Context, arg ListMenuItemsWithRestaurantParams) ([]ListMenuItemsWithRestaurantRow, error) {
+	rows, err := q.db.Query(ctx, listMenuItemsWithRestaurant, arg.RestaurantNameFilter, arg.OrderBy)
 	if err != nil {
 		return nil, err
 	}
