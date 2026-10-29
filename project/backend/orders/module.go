@@ -64,7 +64,7 @@ func (m *Module) Init(ctx context.Context) error {
 }
 
 func (m *Module) RegisterContracts(ctx context.Context, contracts *contracts.Contracts) error {
-	contracts.Orders = ordersModule.Orders{}
+	contracts.Orders = ordersModule.Orders{} //Orders Struct, Orders Interface
 	return nil
 }
 

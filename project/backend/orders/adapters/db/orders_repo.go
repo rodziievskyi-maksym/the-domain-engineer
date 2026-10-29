@@ -13,6 +13,8 @@ import (
 	"eats/backend/orders/app"
 )
 
+var _ app.OrderRepository = &OrdersRepo{}
+
 type OrdersRepo struct {
 	db *pgxpool.Pool
 }

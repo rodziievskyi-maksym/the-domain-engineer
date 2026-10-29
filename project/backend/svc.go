@@ -23,7 +23,7 @@ import (
 type Svc struct {
 	echoRouter *echo.Echo
 
-	modules []module.Module
+	modules []module.Module // interface that describes properties on module
 
 	dbPgx *pgxpool.Pool
 
@@ -38,7 +38,7 @@ func New(
 
 	// We use a pointer here so modules can register their contracts during Init(),
 	// then all modules can call each other after initialization completes.
-	moduleContracts := &contracts.Contracts{}
+	moduleContracts := &contracts.Contracts{} //struct that has interfaces on public contracts of each module as fields
 
 	modules := []module.Module{
 		orders.NewModule(dbPgx, moduleContracts),
