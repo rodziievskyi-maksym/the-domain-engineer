@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"eats/backend/reviews"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -43,6 +44,7 @@ func New(
 	modules := []module.Module{
 		orders.NewModule(dbPgx, moduleContracts),
 		delivery.NewModule(),
+		reviews.NewModule(),
 	}
 
 	for _, module := range modules {

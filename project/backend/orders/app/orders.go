@@ -2,7 +2,8 @@ package app
 
 import (
 	"context"
-	"eats/backend/delivery/api/module/client"
+	deliveryClinet "eats/backend/delivery/api/module/client"
+	reviewsClient "eats/backend/reviews/api/module/client"
 	"fmt"
 	"time"
 
@@ -133,7 +134,21 @@ func (s *Service) CreateQuote(ctx context.Context, req CreateQuote) (Quote, erro
 		return Quote{}, fmt.Errorf("failed to get restaurant: %w", err)
 	}
 
-	feeRequest := client.CalculateDeliveryFeeRequest{
+	rating, err := s.modules.CalculateRestaurantRating(ctx, reviewsClient.CalculateRestaurantRatingRequest{
+		RestaurantUUID: req.RestaurantUUID.UUID,
+	})
+	if err != nil {
+		return Quote{}, fmt.Errorf("failed to calculate restaurant rating: %w", err)
+	}
+
+	if rating.Rating >= 1.0 && rating.Rating < 3.0 {
+		return Quote{}, common.NewInvalidInputError(
+			"restaurant-low-rating-warning",
+			"restaurant has a low rating",
+		).WithDetails(validationErrors)
+	}
+
+	feeRequest := deliveryClinet.CalculateDeliveryFeeRequest{
 		RestaurantAddress: restaurant.Address,
 		DeliveryAddress:   req.DeliveryAddress,
 		Currency:          restaurant.Currency,

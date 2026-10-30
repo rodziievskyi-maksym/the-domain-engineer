@@ -2,11 +2,13 @@ package app
 
 import (
 	"context"
-	"eats/backend/delivery/api/module/client"
+	deliveryClient "eats/backend/delivery/api/module/client"
+	reviewsClient "eats/backend/reviews/api/module/client"
 )
 
 type ModulesContract interface {
-	CalculateDeliveryFee(ctx context.Context, req client.CalculateDeliveryFeeRequest) (client.CalculateDeliveryFeeResponse, error)
+	CalculateDeliveryFee(ctx context.Context, req deliveryClient.CalculateDeliveryFeeRequest) (deliveryClient.CalculateDeliveryFeeResponse, error)
+	CalculateRestaurantRating(ctx context.Context, req reviewsClient.CalculateRestaurantRatingRequest) (reviewsClient.CalculateRestaurantRating, error)
 }
 
 type Service struct {
